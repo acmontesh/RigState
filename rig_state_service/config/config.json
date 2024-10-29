@@ -1,0 +1,55 @@
+{
+    "propositions": [
+                        [101,"ROP is greater than zero"],
+                        [102,"Pump is on"],
+                        [103,"Rotation is on"],
+                        [104,"The block is moving downwards"],
+                        [105,"The block is static"],
+                        [106,"The hook load is greater than the block weight"],
+                        [107,"Drilling"],
+                        [108,"Tripping"],
+                        [109,"Tripping in"],
+                        [110,"Tripping out"],
+                        [111,"Tripping in on elevators"],
+                        [112,"Tripping out on elevators"],
+                        [114,"Washing down"],
+                        [115,"Pumping out"],
+                        [116,"Reaming"],
+                        [117,"Backreaming"],
+                        [118,"Connection or other operations"],
+                        [119,"Drilling in rotary mode"],
+                        [120,"Drilling in slide mode"]
+                    ],
+    "rules":        [
+                        "101->107",
+                        "-101->-107",
+                        "-107,-105,106->108",
+                        "107,103->119",
+                        "107,-103->120",
+                        "108,104->109",
+                        "108,-104->110",
+                        "109,-102->111",
+                        "110,-102->112",
+                        "109,102,103->116",
+                        "110,102,103->117",
+                        "109,102,-116->114",
+                        "110,102,-117->115",
+                        "-107,-108->118",
+                        "-106->-108",
+                        "-103->-116,-117",
+                        "-102->-114,-115",
+                        "-107,105->118"
+                    ],
+    "facts":        [-101,102,-104,103,106,-105],
+    "goals":        [111,112,114,115,116,117,118,119,120],
+    "tolerances":   {
+                        "ROP":             0.5,
+                        "Flow Rate":       5.0,
+                        "Rotation":        30.0,
+                        "Block Position":  0.2,
+                        "Hook Load":       25.0
+                    },
+    "rigChars":     {
+                        "Block Weight":     45.0
+                    }
+}

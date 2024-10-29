@@ -1,0 +1,9 @@
+{
+    "TIME": "Date",
+    "BPOS": "Block Position [ft]",
+    "RPMA": "Surface Rotation [rpm]",
+    "MFIA": "Flow In [gpm]",
+    "HKLA": "Hook Load [klb]",
+    "DMEA": "Hole Depth [ft]",
+    "ROPA": "ROP [fph]"
+}

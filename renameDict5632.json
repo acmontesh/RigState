@@ -1,0 +1,9 @@
+{
+    "YYYY/MM/DD_HH:MM:SS": "YYYY/MM/DD_HH:MM:SS",
+    "Block Height (feet)": "Block Position [ft]",
+    "Rotary RPM (RPM)": "Surface Rotation [rpm]",
+    "Total Pump Output (gal_per_min)": "Flow In [gpm]",
+    "Hook Load (klbs)": "Hook Load [klb]",
+    "Bit Depth (feet)": "Bit Depth [ft]",
+    "Rate Of Penetration (ft_per_hr)": "ROP [fph]"
+}

@@ -5,3 +5,7 @@ dfz_status_08.csv
 renameDict_prod.json
 src
 *.csv
+20241031_2130_MB2314_checkpoint
+*.pth
+*.png
+transformer_0_chk

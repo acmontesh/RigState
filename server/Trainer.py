@@ -293,6 +293,9 @@ class Trainer:
         self.logger.infoMsg( f"The testing dataset has the following shape: {X_test.shape[0]} X {X_test.shape[1]}. The response: {y_test.shape}." )
         X_test                  = self.scaler.transform( X_test )
         X_test, y_test          = self.wrapTensor( X_test, y_test,slidingWindow=self.slidingWindow )
+        X_test                  = torch.from_numpy( X_test.astype(np.float32) )
+        y_test                  = torch.from_numpy( y_test.astype(np.float32) )
+        y_test                  = torch.argmax( y_test, dim=1 )
         for i in range( X_test.shape[0]//batchSize ):
             small_X_test        = X_test[  i*batchSize:i*batchSize+batchSize  ]
             small_X_test        = small_X_test.to( device )
@@ -314,4 +317,5 @@ class Trainer:
         conf_matrix = confusion_matrix(  allYTrue, allYPred, labels=np.arange( 9 )  )
         classNames = [  self.nom.DICT_RIG_STATES[ i ] for i in self.nom.GOAL_RIG_STATES  ]
         self._plotFancyContingencyTable( conf_matrix, classNames )
+
 

@@ -121,7 +121,7 @@ class Trainer:
             epochLoss               = runningLoss / len(  dataLoader  )
             trainLosses[ k*nEpochs+epoch ] = epochLoss
             self.logger.infoMsg( f'[TRAINING MSG>>>]..... Epoch {epoch+1}/{nEpochs}, Train Loss: {loss.item(  ):.4f}')
-            self._saveCheckpoint( model,optimizer,epoch,trainLosses[-1],modelType,codeName=f"_{k}" )
+            self._saveCheckpoint( model,optimizer,epoch,trainLosses[-1],modelType,codeName=f"_transformer_checkpoint.cpt" )
             self.logger.infoMsg( f"Successfully saved checkpoint: {modelType}_{k}.cpt" )
         if saveModel:
             torch.save(  model.state_dict(  ), savePath  )

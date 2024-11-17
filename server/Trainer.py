@@ -12,9 +12,6 @@ import seaborn as sb
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.metrics import confusion_matrix
 import joblib
-from Logger import LoggerDev
-from Nomenclature import Nomenclature
-from Models import TimeSeriesTransformer, LSTMClassifier
 
 class Trainer:
 
@@ -58,14 +55,15 @@ class Trainer:
         return model, optimizer
 
     def trainModel(  self, modelType, batchSize=32, nEpochs=200, learningRate=0.0001, currentCheckPointPath=None,
-                    saveModel=True, savePath="model_transformer.pth", saveScaler=True, scalerPath="scaler_transformer.pkl", **kwargs  ):
+                    saveModel=True, savePath="model_transformer.pth", saveScaler=True, scalerPath="scaler_transformer.pkl",
+                     stratifyData=False,fitScaler=True, **kwargs  ):
         if len( self.dataSets )==0:
             self.logger.errorMsg( "No data has been loaded to the trainer. Use the loadData( ) function before training a model." )
             sys.exit( 1 );
         model, optimizer        = self._createModel( modelType,learningRate, **kwargs )
         self.logger.infoMsg( f"The {modelType} model has been created." )
         currEpoch               = 0
-        trainLosses             = np.zeros( nEpochs*len( self.dataSets ) )
+        trainLosses             = np.zeros( nEpochs )
         if 'slidingWindow' not in kwargs:
             self.slidingWindow  = 5
             self.logger.warningMsg( f"The size of the sliding window has not been specified. By default, it has been set on {self.slidingWindow}." )
@@ -78,11 +76,11 @@ class Trainer:
         typeDevice              = "GPU" if torch.cuda.is_available( ) else "CPU"
         self.logger.infoMsg(  f"Working on: {typeDevice}, model {torch.cuda.get_device_name(0)}"  )
         self.logger.infoMsg( "Extracting features for dataset No. 1." )
-        X_train, y_train        = self.extractFeatures( self.dataSets[ 0 ],self.blockWeights[ 0 ],modelType=modelType,slidingWindow=self.slidingWindow )
+        X_train, y_train        = self.extractFeatures( self.dataSets[ 0 ],self.blockWeights[ 0 ],modelType=modelType,slidingWindow=self.slidingWindow,fitScaler=fitScaler )
         if len( self.dataSets )>1:
             for k,ds in enumerate( self.dataSets[1:] ):
                 self.logger.infoMsg( f"Extracting features for dataset No. {k+2}." )
-                X_train_temp, y_train_temp  = self.extractFeatures( ds,self.blockWeights[ k+1 ],modelType=modelType,slidingWindow=self.slidingWindow )
+                X_train_temp, y_train_temp  = self.extractFeatures( ds,self.blockWeights[ k+1 ],modelType=modelType,slidingWindow=self.slidingWindow,fitScaler=fitScaler )
                 X_train         = np.concatenate( [X_train,X_train_temp],axis=0 )
                 y_train         = np.concatenate( [y_train,y_train_temp] )
         self.logger.infoMsg( f"The training dataset has the following shape: {X_train.shape[0]} X {X_train.shape[1]}. The response: {y_train.shape}" )
@@ -90,6 +88,7 @@ class Trainer:
         X_train, y_train        = self.wrapTensor( X_train,y_train,slidingWindow=self.slidingWindow )
         nNans                   = np.isnan( X_train ).sum(  )
         if nNans>0:             self.logger.warningMsg( f"There are {nNans} NaNs in the training dataset. Consider trimming NaNs before training." )
+        X_train, y_train        = self._stratifyData( X_train, y_train,stratifyData=stratifyData )
         X_train                 = torch.from_numpy( X_train.astype(np.float32) ).to( device )
         y_train                 = torch.from_numpy( y_train.astype(np.float32) )
         y_train                 = torch.argmax( y_train, dim=1 ).to( device )
@@ -119,15 +118,17 @@ class Trainer:
                 correctPreds    += ( predicted == labels ).sum(  ).item(  )
                 totalPreds      += labels.size( 0 )
             epochLoss               = runningLoss / len(  dataLoader  )
-            trainLosses[ k*nEpochs+epoch ] = epochLoss
+            trainLosses[ epoch ] = epochLoss
             self.logger.infoMsg( f'[TRAINING MSG>>>]..... Epoch {epoch+1}/{nEpochs}, Train Loss: {loss.item(  ):.4f}')
-            self._saveCheckpoint( model,optimizer,epoch,trainLosses[-1],modelType,codeName=f"_transformer_checkpoint.cpt" )
+            self._saveCheckpoint( model,optimizer,epoch,trainLosses[-1],modelType,codeName=f"_{k}" )
             self.logger.infoMsg( f"Successfully saved checkpoint: {modelType}_{k}.cpt" )
         if saveModel:
             torch.save(  model.state_dict(  ), savePath  )
             self.logger.infoMsg( f"Successfully saved {modelType} model: {savePath}" )
-        np.save( "training_losses.npy",trainLosses )
         return trainLosses, model
+    
+    def _stratifyData( self ):
+        pass
     
     def wrapTensor( self,X,y,slidingWindow ):
         XF                      = [ ]
@@ -155,7 +156,7 @@ class Trainer:
         inferredBW              = c[0]+delta
         return inferredBW
 
-    def extractFeatures( self, df, blockWeight, modelType,slidingWindow=5 ):
+    def extractFeatures( self, df, blockWeight, modelType,slidingWindow=5,fitScaler=False ):
         df[self.nom.EFF_HOOK_LOAD_MNEMO]            = np.where(df[self.nom.HOOK_LOAD_MNEMO]>0,df[self.nom.HOOK_LOAD_MNEMO]-df[self.nom.BLOCK_WEIGHT_MNEMO],df[self.nom.HOOK_LOAD_MNEMO])
         df[self.nom.BLOCK_POSITION_TREND_MNEMO]     = df[self.nom.BLOCK_POSITION_MNEMO].rolling(window=slidingWindow).apply(self._trend,raw=True,engine='cython')
         df[self.nom.FLOW_RATE_VARIABILITY_MNEMO]    = df[self.nom.FLOW_IN_MNEMO].rolling(window=slidingWindow).std(  )
@@ -174,7 +175,7 @@ class Trainer:
                                                             self.nom.RIG_STATE_MNEMO]]
         dfTraining                                  = dfTraining.dropna( axis=0 )
         X                       = dfTraining.iloc[:,:-1].values
-        y                       = df[self.nom.RIG_STATE_MNEMO].values
+        y                       = dfTraining[self.nom.RIG_STATE_MNEMO].values
         y                       = pd.get_dummies( y )
         y                       = y.reindex( columns=self.nom.GOAL_RIG_STATES,fill_value=False )
         y                       = y.values        
@@ -252,7 +253,7 @@ class Trainer:
         slope,_,_,_,_         = sp.stats.linregress( np.arange(len( window )), window )
         return slope
 
-    def testModel( self,pathTest,pathScaler=None,blockWeights={  },batchSize=32,loadFromPath=None,modelType=None,model=None,**kwargs ):
+    def testModel( self,pathTest,pathScaler=None,blockWeights={  },batchSize=32,loadFromPath=None,modelType=None,model=None,fitScaler=False,**kwargs ):
         device                  = torch.device( "cuda:0" if torch.cuda.is_available( ) else "cpu" )
         typeDevice              = "GPU" if torch.cuda.is_available( ) else "CPU"
         self.logger.infoMsg(  f"Testing on: {typeDevice}, model {torch.cuda.get_device_name(0)}"  )
@@ -283,11 +284,11 @@ class Trainer:
         allYPred                = [  ]
         allYTrue                = [  ]
         self.loadData( pathTest,blockWeights )
-        X_test, y_test        = self.extractFeatures( self.dataSets[ 0 ],self.blockWeights[ 0 ],modelType=modelType,slidingWindow=self.slidingWindow )
+        X_test, y_test        = self.extractFeatures( self.dataSets[ 0 ],self.blockWeights[ 0 ],modelType=modelType,slidingWindow=self.slidingWindow,fitScaler=fitScaler )
         if len( self.dataSets )>1:
             for k,ds in enumerate( self.dataSets[1:] ):
                 self.logger.infoMsg( f"Extracting features for dataset No. {k+2}." )
-                X_test_temp, y_test_temp    = self.extractFeatures( ds,self.blockWeights[ k+1 ],modelType=modelType,slidingWindow=self.slidingWindow )
+                X_test_temp, y_test_temp    = self.extractFeatures( ds,self.blockWeights[ k+1 ],modelType=modelType,slidingWindow=self.slidingWindow,fitScaler=fitScaler )
                 X_test                      = np.concatenate( [X_test,X_test_temp],axis=0 )
                 y_test                      = np.concatenate( [y_test,y_test_temp] )
         self.logger.infoMsg( f"The testing dataset has the following shape: {X_test.shape[0]} X {X_test.shape[1]}. The response: {y_test.shape}." )
@@ -317,5 +318,4 @@ class Trainer:
         conf_matrix = confusion_matrix(  allYTrue, allYPred, labels=np.arange( 9 )  )
         classNames = [  self.nom.DICT_RIG_STATES[ i ] for i in self.nom.GOAL_RIG_STATES  ]
         self._plotFancyContingencyTable( conf_matrix, classNames )
-
 

@@ -41,11 +41,11 @@ class Trainer:
                 bW                              =   blockWeights[ file[ :-4 ] ]
             else:
                 bW                              =   self._getBlockWeight( df,nbins=nBinsBWInference )
-                self.logger.warningMsg( f"The block weight for the {file[ :-4 ]} well was not provided. Therefore, it has been inferred. Its value is: {bW}" )
+                self.logger.warningMsg( f"The block weight for the {file[ :-4 ]} well was not provided. Therefore, it has been inferred. Its value is: {bW:.1f}" )
             df[ self.nom.BLOCK_WEIGHT_MNEMO ]   = bW
             self.dataSets.append( df )
             self.blockWeights.append( bW )
-            self.logger.infoMsg( f"Block weight for {file} has been set on: {bW} klb." )
+            self.logger.infoMsg( f"Block weight for {file} has been set on: {bW:.1f} klb." )
         self.logger.infoMsg( f"Data has been loaded correctly to the trainer. In total, {len( self.dataSets )} dataframes have been loaded." )
 
     def _loadCheckPoint( self, currentCheckPointPath, model, optimizer ):
@@ -56,7 +56,7 @@ class Trainer:
 
     def trainModel(  self, modelType, batchSize=32, nEpochs=200, learningRate=0.0001, currentCheckPointPath=None,
                     saveModel=True, savePath="model_transformer.pth", saveScaler=True, scalerPath="scaler_transformer.pkl",
-                     stratifyData=False,fitScaler=True, **kwargs  ):
+                     stratifyData=True,fitScaler=True, **kwargs  ):
         if len( self.dataSets )==0:
             self.logger.errorMsg( "No data has been loaded to the trainer. Use the loadData( ) function before training a model." )
             sys.exit( 1 );
@@ -88,7 +88,7 @@ class Trainer:
         X_train, y_train        = self.wrapTensor( X_train,y_train,slidingWindow=self.slidingWindow )
         nNans                   = np.isnan( X_train ).sum(  )
         if nNans>0:             self.logger.warningMsg( f"There are {nNans} NaNs in the training dataset. Consider trimming NaNs before training." )
-        X_train, y_train        = self._stratifyData( X_train, y_train,stratifyData=stratifyData )
+        X_train, y_train        = self._stratifyData( X_train, y_train,stratify=stratifyData )
         X_train                 = torch.from_numpy( X_train.astype(np.float32) ).to( device )
         y_train                 = torch.from_numpy( y_train.astype(np.float32) )
         y_train                 = torch.argmax( y_train, dim=1 ).to( device )
@@ -101,7 +101,7 @@ class Trainer:
         dataLoader              = DataLoader( dataset, batch_size=batchSize, shuffle=True )
         self.logger.infoMsg( "Data loaded to the torch DataLoader object." )
         for epoch in range( nEpochs ):
-            if epoch==0: self.logger.infoMsg( f"Initiating forward pass (epoch {epoch}) for dataset {k}." )
+            if epoch==0: self.logger.infoMsg( f"Initiating forward pass (epoch {epoch})." )
             model.train(  )
             runningLoss         = 0.0
             correctPreds        = 0
@@ -120,16 +120,43 @@ class Trainer:
             epochLoss               = runningLoss / len(  dataLoader  )
             trainLosses[ epoch ] = epochLoss
             self.logger.infoMsg( f'[TRAINING MSG>>>]..... Epoch {epoch+1}/{nEpochs}, Train Loss: {loss.item(  ):.4f}')
-            self._saveCheckpoint( model,optimizer,epoch,trainLosses[-1],modelType,codeName=f"_{k}" )
-            self.logger.infoMsg( f"Successfully saved checkpoint: {modelType}_{k}.cpt" )
+            self._saveCheckpoint( model,optimizer,epoch,trainLosses[-1],modelType,codeName=f"_transformer_checkpoint.chpt" )
+            self.logger.infoMsg( f"Successfully saved checkpoint: {modelType}.chpt" )
         if saveModel:
             torch.save(  model.state_dict(  ), savePath  )
             self.logger.infoMsg( f"Successfully saved {modelType} model: {savePath}" )
         return trainLosses, model
     
-    def _stratifyData( self ):
-        pass
+    def _stratifyData( self,X,y,stratify,nUndersamplingRounds=2 ):
+        if not stratify:    return X,y
+        yComp                   = np.argmax( y,axis=1 )
+        countDict                   = { x:np.sum( yComp==x ) for x in np.unique( yComp ) }
+        self.logger.infoMsg( f"Before undersampling, the counts per class are: {countDict}." )
+        newX,newY               = ( X,y )
+        newX,newY,countDict     = self._undersampling( newX,newY )
+        self.logger.infoMsg( f"After undersampling, the counts per class are: {countDict}." )
+        return newX,newY    
     
+    def _undersampling( self,newX,newY,nTimes=2 ):
+        buffX,buffY             = ( newX,newY )
+        for i in range( nTimes ):
+            yComp                   = np.argmax( buffY,axis=1 )
+            countDict               = { x:np.sum( yComp==x ) for x in np.unique( yComp ) }
+            classRef                = sorted( countDict,key=countDict.get,reverse=True )[i]
+            classRefNext            = sorted( countDict,key=countDict.get,reverse=True )[i+1]
+            diff                    = countDict[classRef] - countDict[classRefNext]
+            rdSetDelete             = np.array( [ ] )
+            for jClass in sorted( countDict,key=countDict.get,reverse=True )[0:i+1]:
+                indices             = np.argwhere( yComp==jClass ).reshape( -1, )
+                selection           = np.random.choice( indices, size=diff, replace=False )
+                rdSetDelete         = np.concatenate( [ rdSetDelete,selection ] )
+            allIdxs                 = np.setdiff1d( np.arange( buffX.shape[0] ), rdSetDelete ).astype( int )
+            buffX                    = buffX[ allIdxs ]
+            buffY                    = buffY[ allIdxs ]
+        yComp                       = np.argmax( buffY,axis=1 )
+        countDict                   = { x:np.sum( yComp==x ) for x in np.unique( yComp ) }
+        return buffX,buffY,countDict
+
     def wrapTensor( self,X,y,slidingWindow ):
         XF                      = [ ]
         yF                      = [ ]

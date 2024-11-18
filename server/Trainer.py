@@ -12,6 +12,9 @@ import seaborn as sb
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.metrics import confusion_matrix
 import joblib
+from Nomenclature import Nomenclature
+from Logger import LoggerDev
+from Models import LSTMClassifier, TimeSeriesTransformer
 
 class Trainer:
 

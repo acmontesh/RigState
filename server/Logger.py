@@ -27,3 +27,8 @@ class LoggerDev:
     def errorMsg( self,msg=None ):
         if (msg is not None) and (self.verbosity>-1):
             logging.error(  msg  )
+
+    def resultMessage( self,msg=None ):
+        if (msg is not None) and (self.verbosity>1):
+            logging.info(  f"[RESULTS] -------->  {msg}"  )
+

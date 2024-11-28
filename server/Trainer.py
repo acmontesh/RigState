@@ -14,6 +14,8 @@ from sklearn.metrics import confusion_matrix
 import joblib
 from Nomenclature import Nomenclature
 from Logger import LoggerDev
+from Models import TimeSeriesTransformer
+
 class Trainer:
 
     FDICT_PLOTS                 = {'family':'Arial','size':8}

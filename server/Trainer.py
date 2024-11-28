@@ -79,8 +79,8 @@ class Trainer:
         self.logger.infoMsg( f"The {modelType} model has been created." )
         currEpoch               = 0
         trainLosses             = np.zeros( nEpochs )
-        decorators1          = "default_heads" if "nHeads" not in kwargs else f"H{kwargs["nHeads"]}"
-        decorators2          = "default_layers" if "nLayers" not in kwargs else f"L{kwargs["nLayers"]}"
+        decorators1          = "default_heads" if "nHeads" not in kwargs else f"H{kwargs['nHeads']}"
+        decorators2          = "default_layers" if "nLayers" not in kwargs else f"L{kwargs['nLayers']}"
         if 'slidingWindow' not in kwargs:
             self.slidingWindow  = [5,30]
             self.logger.warningMsg( f"The size of the sliding windows (two resolution levels) has not been specified. By default, the small time window has been set on {self.slidingWindow[0]} sec, and the large one to {self.slidingWindow[1]} sec." )

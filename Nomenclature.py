@@ -29,12 +29,16 @@ class Nomenclature:
     CIRCULATION_MNEMO       = "Circulation"
     BLOCK_WEIGHT_DELTA_MNEMO= "delta"
     BLOCK_WEIGHT_DELTA_DATES_MNEMO="dates"
-    BLOCK_POSITION_TREND_MNEMO='Block Position Trend'
+    BLOCK_POSITION_TREND_SHORT_MNEMO='Short-Term Block Position Trend'
+    BLOCK_POSITION_TREND_LONG_MNEMO='Long-Term Block Position Trend'
+    HOOK_LOAD_SHORT_TREND='Short-Term Effective Hook Load Trend'
+    HOOK_LOAD_LONG_TREND='Long-Term Effective Hook Load Trend'
     FLOW_RATE_VARIABILITY_MNEMO='Flow Rate Variability'
     FLOW_RATE_MEAN_MNEMO        ='Flow Rate Mean'
     RPM_MEAN_MNEMO          = 'RPM Mean'
-    HOOK_LOAD_MEAN_MNEMO    = 'Hook Load Mean'
+    HOOK_LOAD_MEAN_MNEMO    = 'Effective Hook Load Mean'
     HOOK_LOAD_VARIABILITY_MNEMO='Hook Load Variability'
+    PRESSURE_MEAN_MNEMO     = 'Standpipe Pressure Mean'
     EFF_HOOK_LOAD_MNEMO     = 'Effective Hook Load [klb]'
     ROP_MEAN_MNEMO          = 'ROP Mean'
     BACKREAMING_MNEMO       = 117
@@ -45,7 +49,7 @@ class Nomenclature:
     CONNECTION_MNEMO        = 118
     TRANSFORMER_MODEL_MNEMO = "transformer"
     LSTM_MODEL_MNEMO        = "lstm"
-    GOAL_RIG_STATES         = [111,112,114,115,116,117,118,119,120,121]
+    GOAL_RIG_STATES         = [111,112,114,115,116,117,118,119,120,121,124]
     DICT_RIG_STATES         = {
                                     111:"Tripping in on elevators",
                                     112:"Tripping out on elevators",
@@ -53,10 +57,11 @@ class Nomenclature:
                                     115:"Pumping out",
                                     116:"Reaming",
                                     117:"Backreaming",
-                                    118:"Connection/Other surface operations",
+                                    118:"Drillstring set in the slips",
                                     119:"Drilling (with surface rotation)",
                                     120:"Drilling (sliding)",
-                                    121:"Circulating"
+                                    121:"Circulating",
+                                    124:"Static, off-the-slips drillstring"
                                 }
     CONVERTION_HASH_TABLE   = {
             "TIME":                             DATE_MNEMONIC,

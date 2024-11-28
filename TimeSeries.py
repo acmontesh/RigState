@@ -70,9 +70,10 @@ class TimeSeries:
                 df[ renameDict[timeCol] ]       = df[ renameDict[timeCol] ].dt.tz_localize( 'UTC' )
         else:
             if labelColumn is not None: df=df.rename( {labelColumn:self.WELL_ACTIVITY_COLUMN},axis=1 )
+            timeCol         = timeColumn
         if deleteNans: 
             if not nanPlaceHolder is None:
-                for col in list( df.columns ):
+                for col in list( df.columns )[1:]:
                     df[ col ]                   = np.where( df[ col ]==nanPlaceHolder,np.nan,df[ col ] )
             nansPerCols     = list( df.isna( ).sum( ) )
             colMiss         = list( df.columns )[ np.argmax( nansPerCols ) ]
@@ -180,7 +181,7 @@ class TimeSeries:
         ax.set_xlabel( "Time/Index" )
         ax.set_facecolor( background )
 
-    def annotate( self,hoursPerPlot=4,rangeIdxPerPlot=1000,figWidth=15,figHeight=8,activityCodes=None,cumulativePersistance=True,**kwargs ):
+    def annotate( self,hoursPerPlot=4,rangeIdxPerPlot=1000,figWidth=35,figHeight=8,activityCodes=None,cumulativePersistance=True,**kwargs ):
         """
         Allows the interactive annotation of the time series object
         inputs:
@@ -459,7 +460,7 @@ class TimeSeries:
             fig.canvas.mpl_connect(   'motion_notify_event', onMotion   )
             fig.canvas.mpl_connect(   'button_release_event', onRelease   )
             fig.canvas.mpl_connect(   'key_press_event', onKey   )
-            plt.tight_layout( w_pad=1 )
+            plt.tight_layout(  )
             plt.show(  )            
             MessageBox = ctypes.windll.user32.MessageBoxW
             MessageBox(  None, 'Click to continue after finishing annotating the current plot', 'Continue', 0  ) 

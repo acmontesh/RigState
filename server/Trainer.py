@@ -14,15 +14,21 @@ from sklearn.metrics import confusion_matrix
 import joblib
 from Nomenclature import Nomenclature
 from Logger import LoggerDev
-from Models import LSTMClassifier, TimeSeriesTransformer
-
 class Trainer:
 
     FDICT_PLOTS                 = {'family':'Arial','size':8}
-    LOWER_LIM_HKL_FOR_BLOCK_WEIGHT      = 200
+    LOWER_LIM_HKL_FOR_BLOCK_WEIGHT      = 100
     UPPER_LIM_HKL_FOR_BLOCK_WEIGHT      = 1000
+    WINDOW_BLOCK_POS_TREND              = 3
 
     def __init__( self ):
+        """
+        slidingWindow:          Time windows to derive features. For example, the trend of the block position. 
+                                It is a list. The first component is a small time window, to emphasize short-term changes. 
+                                The second one is a large time window, to account for long-term variations.
+        slidingWindowCoverage:  Time window of size T used to convert the extracted features from a NxD matrix to a NxTxD, where T is the size of the subsequences
+                                that the model will use as inputs.
+        """
         self.logger             = LoggerDev(  )
         self.dataSets           = [  ]
         self.concatDataset      = [  ]
@@ -30,10 +36,14 @@ class Trainer:
         self.nom                = Nomenclature(  )
         self.labelPreds         = {  }
         self.scaler             = StandardScaler( )
-        self.slidingWindow      = None
+        self.slidingWindow= None
+        self.slidingWindowCoverage= None
 
-    def setSlidingWindow( self,slidingWindow ):
-        self.slidingWindow      = slidingWindow
+    def setSlidingWindow( self,slidingWindows ):
+        self.slidingWindow      = slidingWindows
+
+    def setSlidingWindowCoverage( self,slidingWindowCoverage ):
+        self.slidingWindowCoverage      = slidingWindowCoverage
 
     def loadData( self,pathFolder,blockWeights={  },nBinsBWInference=100,dropNaNs=True ):
         for file in os.listdir( pathFolder ):
@@ -58,7 +68,7 @@ class Trainer:
         return model, optimizer
 
     def trainModel(  self, modelType, batchSize=32, nEpochs=200, learningRate=0.0001, currentCheckPointPath=None,
-                    saveModel=True, savePath="model_transformer.pth", saveScaler=True, scalerPath="scaler_transformer.pkl",
+                    saveModel=True, savePath="model_transformer.pth", saveScaler=True, scalerPath="scaler_transformer",
                      stratifyData=True,fitScaler=True, **kwargs  ):
         if len( self.dataSets )==0:
             self.logger.errorMsg( "No data has been loaded to the trainer. Use the loadData( ) function before training a model." )
@@ -68,9 +78,13 @@ class Trainer:
         currEpoch               = 0
         trainLosses             = np.zeros( nEpochs )
         if 'slidingWindow' not in kwargs:
-            self.slidingWindow  = 5
-            self.logger.warningMsg( f"The size of the sliding window has not been specified. By default, it has been set on {self.slidingWindow}." )
+            self.slidingWindow  = [5,30]
+            self.logger.warningMsg( f"The size of the sliding windows (two resolution levels) has not been specified. By default, the small time window has been set on {self.slidingWindow[0]} sec, and the large one to {self.slidingWindow[1]} sec." )
         else: self.slidingWindow= kwargs['slidingWindow']
+        if 'slidingWindowCoverage' not in kwargs:
+            self.slidingWindowCoverage  = 5
+            self.logger.warningMsg( f"The size of the transformation window has not been specified. By default, it has been set on {self.slidingWindowCoverage}." )
+        else: self.slidingWindowCoverage= kwargs['slidingWindowCoverage']
         if currentCheckPointPath is not None:
             model, optimizer    = self._loadCheckPoint( currentCheckPointPath, model, optimizer )
             self.logger.infoMsg( "Checkpoint loaded successfully. Resuming training..." )
@@ -88,7 +102,7 @@ class Trainer:
                 y_train         = np.concatenate( [y_train,y_train_temp] )
         self.logger.infoMsg( f"The training dataset has the following shape: {X_train.shape[0]} X {X_train.shape[1]}. The response: {y_train.shape}" )
         X_train                 = self.scaler.transform( X_train )
-        X_train, y_train        = self.wrapTensor( X_train,y_train,slidingWindow=self.slidingWindow )
+        X_train, y_train        = self.wrapTensor( X_train,y_train,slidingWindow=self.slidingWindowCoverage )
         nNans                   = np.isnan( X_train ).sum(  )
         if nNans>0:             self.logger.warningMsg( f"There are {nNans} NaNs in the training dataset. Consider trimming NaNs before training." )
         X_train, y_train        = self._stratifyData( X_train, y_train,stratify=stratifyData )
@@ -97,7 +111,7 @@ class Trainer:
         y_train                 = torch.argmax( y_train, dim=1 ).to( device )
         self.logger.infoMsg( f"Size of the training data: {(X_train.numel(  ) * X_train.element_size(  ))/1E9:.2f} GB for the input matrix and {(y_train.numel(  ) * y_train.element_size(  ))/1E9:.2f} GB for the response variable." )
         if saveScaler:
-            joblib.dump( self.scaler, scalerPath )
+            joblib.dump( self.scaler, f"{scalerPath}_CV{self.slidingWindowCoverage}.pkl" )
             self.logger.infoMsg( f"Successfully saved scaler: {scalerPath}" )
         criterion               = nn.CrossEntropyLoss(  )
         dataset                 = TensorDataset( X_train, y_train )
@@ -133,10 +147,11 @@ class Trainer:
     def _stratifyData( self,X,y,stratify,nUndersamplingRounds=2 ):
         if not stratify:    return X,y
         yComp                   = np.argmax( y,axis=1 )
+        self.logger.infoMsg( f"The number of unique classes are: {len(np.unique(yComp))}" )
         countDict                   = { x:np.sum( yComp==x ) for x in np.unique( yComp ) }
         self.logger.infoMsg( f"Before undersampling, the counts per class are: {countDict}." )
         newX,newY               = ( X,y )
-        newX,newY,countDict     = self._undersampling( newX,newY )
+        newX,newY,countDict     = self._undersampling( newX,newY,nTimes=nUndersamplingRounds )
         self.logger.infoMsg( f"After undersampling, the counts per class are: {countDict}." )
         return newX,newY    
     
@@ -179,29 +194,45 @@ class Trainer:
 
     def _getBlockWeight( self,dataSet,nbins=100 ):
         df                      = dataSet.copy( deep=True )
-        df['Hook Load [klb]']   = np.where( (df[ self.nom.HOOK_LOAD_MNEMO ]<0) | (df[ self.nom.HOOK_LOAD_MNEMO ]>self.UPPER_LIM_HKL_FOR_BLOCK_WEIGHT), 0, df[ self.nom.HOOK_LOAD_MNEMO ])
+        df[self.nom.HOOK_LOAD_MNEMO]   = np.where( (df[ self.nom.HOOK_LOAD_MNEMO ]<0) | (df[ self.nom.HOOK_LOAD_MNEMO ]>self.UPPER_LIM_HKL_FOR_BLOCK_WEIGHT), 0, df[ self.nom.HOOK_LOAD_MNEMO ])
         b                       = np.flip( np.argsort( np.histogram( df[ self.nom.HOOK_LOAD_MNEMO ],bins=nbins )[0] ) )
         c                       = np.histogram( df[ self.nom.HOOK_LOAD_MNEMO ],bins=nbins )[1][b][  np.histogram( df[ self.nom.HOOK_LOAD_MNEMO ],bins=nbins )[1][b]<self.LOWER_LIM_HKL_FOR_BLOCK_WEIGHT  ]
         delta                   = ( np.histogram( df[ self.nom.HOOK_LOAD_MNEMO ],bins=nbins )[1].max(  ) - np.histogram( df[ self.nom.HOOK_LOAD_MNEMO ],bins=nbins )[1].min(  ) )/(  2*nbins  )
         inferredBW              = c[0]+delta
         return inferredBW
 
-    def extractFeatures( self, df, blockWeight, modelType,slidingWindow=5,fitScaler=False ):
-        df[self.nom.EFF_HOOK_LOAD_MNEMO]            = np.where(df[self.nom.HOOK_LOAD_MNEMO]>0,df[self.nom.HOOK_LOAD_MNEMO]-df[self.nom.BLOCK_WEIGHT_MNEMO],df[self.nom.HOOK_LOAD_MNEMO])
-        df[self.nom.BLOCK_POSITION_TREND_MNEMO]     = df[self.nom.BLOCK_POSITION_MNEMO].rolling(window=slidingWindow).apply(self._trend,raw=True,engine='cython')
-        df[self.nom.FLOW_RATE_VARIABILITY_MNEMO]    = df[self.nom.FLOW_IN_MNEMO].rolling(window=slidingWindow).std(  )
-        df[self.nom.FLOW_RATE_MEAN_MNEMO]           = df[self.nom.FLOW_IN_MNEMO].rolling(window=slidingWindow).mean(  )
-        df[self.nom.RPM_MEAN_MNEMO]                 = df[self.nom.RPM_MNEMO].rolling(window=slidingWindow).mean(  )
-        df[self.nom.HOOK_LOAD_MEAN_MNEMO]           = df[self.nom.EFF_HOOK_LOAD_MNEMO].rolling(window=slidingWindow).mean(  )
-        df[self.nom.HOOK_LOAD_VARIABILITY_MNEMO]    = df[self.nom.EFF_HOOK_LOAD_MNEMO].rolling(window=slidingWindow).std(  )
-        df[self.nom.ROP_MEAN_MNEMO]                 = df[self.nom.ROP_MNEMO].rolling(window=slidingWindow).mean(  )
-        dfTraining                                  = df[[self.nom.BLOCK_POSITION_TREND_MNEMO,
+    def extractFeatures( self, df, blockWeight, modelType,slidingWindow=[5,60],fitScaler=False ):
+        if isinstance( slidingWindow,list ):
+            if len( slidingWindow )>=2:
+                shortTW,longTW                              = slidingWindow
+            else: 
+                self.logger.errorMsg( "slidingWindow must be a list with at least two components: The size of the time windows for inspecting short- and long-term variations." )
+                sys.exit( 1 )
+        else:
+            self.logger.errorMsg( "slidingWindow must be a list." )
+            sys.exit( 1 )
+        df[self.nom.EFF_HOOK_LOAD_MNEMO]            = np.where(df[self.nom.HOOK_LOAD_MNEMO]>0,df[self.nom.HOOK_LOAD_MNEMO]-df[self.nom.BLOCK_WEIGHT_MNEMO],0)
+        df[self.nom.BLOCK_POSITION_TREND_SHORT_MNEMO]= df[self.nom.BLOCK_POSITION_MNEMO].rolling(window=shortTW).apply(self._trend,raw=True,engine='cython')
+        df[self.nom.BLOCK_POSITION_TREND_LONG_MNEMO]= df[self.nom.BLOCK_POSITION_MNEMO].rolling(window=longTW).apply(self._trend,raw=True,engine='cython')
+        df[self.nom.FLOW_RATE_VARIABILITY_MNEMO]    = df[self.nom.FLOW_IN_MNEMO].rolling(window=shortTW).std(  )
+        df[self.nom.FLOW_RATE_MEAN_MNEMO]           = df[self.nom.FLOW_IN_MNEMO].rolling(window=shortTW).mean(  )
+        df[self.nom.PRESSURE_MEAN_MNEMO]            = df[self.nom.STANDPIPE_PRESSURE_MNEMO].rolling(window=shortTW).mean(  )
+        df[self.nom.RPM_MEAN_MNEMO]                 = df[self.nom.RPM_MNEMO].rolling(window=shortTW).mean(  )
+        df[self.nom.HOOK_LOAD_MEAN_MNEMO]           = df[self.nom.EFF_HOOK_LOAD_MNEMO].rolling(window=shortTW).mean(  )
+        df[self.nom.HOOK_LOAD_SHORT_TREND]                = df[self.nom.EFF_HOOK_LOAD_MNEMO].rolling(window=shortTW).apply(self._trend,raw=True,engine='cython')
+        df[self.nom.HOOK_LOAD_LONG_TREND]                = df[self.nom.EFF_HOOK_LOAD_MNEMO].rolling(window=longTW).apply(self._trend,raw=True,engine='cython')
+        # df[self.nom.HOOK_LOAD_VARIABILITY_MNEMO]    = df[self.nom.EFF_HOOK_LOAD_MNEMO].rolling(window=shortTW).std(  )
+        df[self.nom.ROP_MEAN_MNEMO]                 = df[self.nom.ROP_MNEMO].rolling(window=shortTW).mean(  )
+        dfTraining                                  = df[[self.nom.BLOCK_POSITION_TREND_SHORT_MNEMO,
+                                                          self.nom.BLOCK_POSITION_TREND_LONG_MNEMO,
                                                             self.nom.FLOW_RATE_VARIABILITY_MNEMO,
                                                             self.nom.FLOW_RATE_MEAN_MNEMO,
+                                                            self.nom.PRESSURE_MEAN_MNEMO,
                                                             self.nom.RPM_MEAN_MNEMO,
                                                             self.nom.HOOK_LOAD_MEAN_MNEMO,
                                                             self.nom.ROP_MEAN_MNEMO,
-                                                            self.nom.HOOK_LOAD_VARIABILITY_MNEMO,
+                                                            self.nom.HOOK_LOAD_SHORT_TREND,
+                                                            self.nom.HOOK_LOAD_LONG_TREND,
                                                             self.nom.RIG_STATE_MNEMO]]
         dfTraining                                  = dfTraining.dropna( axis=0 )
         X                       = dfTraining.iloc[:,:-1].values
@@ -211,6 +242,8 @@ class Trainer:
         y                       = y.values        
         self.scaler.partial_fit( X )
         return X, y
+    
+
 
     def plotLosses( self, trainingLoss, testLoss, outPath="loss_curve.png" ):
         fig,ax                    = plt.subplots( figsize=(6.83,3.33) )
@@ -239,7 +272,7 @@ class Trainer:
         fig.savefig( outPath,dpi=600 )
 
     def _saveCheckpoint( self,model, optimizer, epoch, loss, modelType, path='checkpoint.pth',codeName="_" ):
-        newPath    = f"{modelType}{codeName}_chk"
+        newPath    = f"{modelType}{codeName}_CV{self.slidingWindowCoverage}"
         checkpoint = {
             'epoch': epoch,
             'model_state_dict': model.state_dict(  ),
@@ -259,10 +292,10 @@ class Trainer:
         return model,optimizer
 
     def createModelTransformer( self, device, **kwargs ):
-        nInputs         = 7 if "nInputs" not in kwargs else kwargs["nInputs"]
+        nInputs         = 10 if "nInputs" not in kwargs else kwargs["nInputs"]
         nLayers         = 3 if "nLayers" not in kwargs else kwargs["nLayers"]
         dModel          = 256 if "dModel" not in kwargs else kwargs["dModel"]
-        nOutput         = 10 if "nOutput" not in kwargs else kwargs["nOutput"]
+        nOutput         = 11 if "nOutput" not in kwargs else kwargs["nOutput"]
         nHead           = 8 if "nHead" not in kwargs else kwargs["nHead"]
         dimFeedForward  = 512 if "dimFeedForward" not in kwargs else kwargs["dimFeedForward"]
         model           = TimeSeriesTransformer(  nInputs=nInputs,nLayers=nLayers,dModel=dModel,
@@ -288,9 +321,13 @@ class Trainer:
         typeDevice              = "GPU" if torch.cuda.is_available( ) else "CPU"
         self.logger.infoMsg(  f"Testing on: {typeDevice}, model {torch.cuda.get_device_name(0)}"  )
         if 'slidingWindow' not in kwargs:
-            self.slidingWindow  = 5
-            self.logger.warningMsg( f"The size of the sliding window has not been specified. By default, it has been set on {self.slidingWindow}." )
+            self.slidingWindow  = [5,30]
+            self.logger.warningMsg( f"The size of the sliding windows (two resolution levels) has not been specified. By default, the small time window has been set on {self.slidingWindow[0]} sec, and the large one to {self.slidingWindow[1]} sec." )
         else: self.slidingWindow= kwargs['slidingWindow']
+        if 'slidingWindowCoverage' not in kwargs:
+            self.slidingWindowCoverage  = 5
+            self.logger.warningMsg( f"The size of the transformation window has not been specified. By default, it has been set on {self.slidingWindowCoverage}." )
+        else: self.slidingWindowCoverage= kwargs['slidingWindowCoverage']
         if (loadFromPath is None) & (model is None):
             self.logger.errorMsg( "Cannot test a model if no model is indicated. Either specify the torch model object or a path to a .pth file containing a model." )
             sys.exit( 1 )
@@ -323,7 +360,7 @@ class Trainer:
                 y_test                      = np.concatenate( [y_test,y_test_temp] )
         self.logger.infoMsg( f"The testing dataset has the following shape: {X_test.shape[0]} X {X_test.shape[1]}. The response: {y_test.shape}." )
         X_test                  = self.scaler.transform( X_test )
-        X_test, y_test          = self.wrapTensor( X_test, y_test,slidingWindow=self.slidingWindow )
+        X_test, y_test          = self.wrapTensor( X_test, y_test,slidingWindow=self.slidingWindowCoverage )
         X_test                  = torch.from_numpy( X_test.astype(np.float32) )
         y_test                  = torch.from_numpy( y_test.astype(np.float32) )
         y_test                  = torch.argmax( y_test, dim=1 )
@@ -345,7 +382,31 @@ class Trainer:
                 nSamples            += batchSize
         accuracy = nCorrectSamples / nSamples
         self.logger.infoMsg(f'Accuracy: {accuracy:.4f}')
-        conf_matrix = confusion_matrix(  allYTrue, allYPred, labels=np.arange( 9 )  )
+        confMatrix = confusion_matrix(  allYTrue, allYPred, labels=np.arange( 11 )  )
         classNames = [  self.nom.DICT_RIG_STATES[ i ] for i in self.nom.GOAL_RIG_STATES  ]
-        self._plotFancyContingencyTable( conf_matrix, classNames )
+        self._plotFancyContingencyTable( confMatrix, classNames )
+        self.printOutF1Scores( confMatrix,None,classNames )
+        return np.array( allYPred )
+    
+    def printOutF1Scores( self,confMatrix,nClasses=None,classesNames=None ):
+        if nClasses is None:
+            nClasses                = confMatrix.shape[0]
+            self.logger.warningMsg( f"The number of classes has been inferred from the confusion matrix: {confMatrix.shape[0]}" )
+        precScores      = [  ]
+        recallScores    = [  ]
+        f1Scores        = [  ]
+        for i in range( nClasses ):
+            TP = confMatrix[i, i]
+            FP = confMatrix[:, i].sum( ) - TP
+            FN = confMatrix[i, :].sum( ) - TP
+            precision = TP / (TP + FP) if TP + FP > 0 else 0
+            recall = TP / (TP + FN) if TP + FN > 0 else 0
+            f1 = 2 * ( precision * recall ) / ( precision + recall ) if precision + recall > 0 else 0
+            precScores.append(precision)
+            recallScores.append(recall)
+            f1Scores.append(f1)
+        if classesNames is None:        classesNames = [ f"{i}" for i in range(len(f1Scores)) ]
+        for i, (f1, precision, recall) in enumerate(zip( f1Scores, precScores, recallScores )):
+            self.logger.resultMessage( f"Class {classesNames[i]}: Precision={precision:.2f}, Recall={recall:.2f}, F1 Score={f1:.2f}" )
+        return precScores,recallScores,f1Scores
 

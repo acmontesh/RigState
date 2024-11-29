@@ -14,7 +14,7 @@ from sklearn.metrics import confusion_matrix
 import joblib
 from Nomenclature import Nomenclature
 from Logger import LoggerDev
-from Models import TimeSeriesTransformer
+from Models import TimeSeriesTransformer, LSTMClassifier
 
 class Trainer:
 
@@ -79,7 +79,8 @@ class Trainer:
         self.logger.infoMsg( f"The {modelType} model has been created." )
         currEpoch               = 0
         trainLosses             = np.zeros( nEpochs )
-        decorators1          = "default_heads" if "nHeads" not in kwargs else f"H{kwargs['nHeads']}"
+        decorators1          = "default_hiddens" if "nHidden" not in kwargs else f"H{kwargs['nHidden']}"
+        # decorators1          = "default_heads" if "nHeads" not in kwargs else f"H{kwargs['nHeads']}"
         decorators2          = "default_layers" if "nLayers" not in kwargs else f"L{kwargs['nLayers']}"
         if 'slidingWindow' not in kwargs:
             self.slidingWindow  = [5,30]
@@ -115,7 +116,7 @@ class Trainer:
         y_train                 = torch.argmax( y_train, dim=1 ).to( device )
         self.logger.infoMsg( f"Size of the training data: {(X_train.numel(  ) * X_train.element_size(  ))/1E9:.2f} GB for the input matrix and {(y_train.numel(  ) * y_train.element_size(  ))/1E9:.2f} GB for the response variable." )
         if saveScaler:
-            joblib.dump( self.scaler, f"{scalerPath}_CV{self.slidingWindowCoverage}_{decorators1}_{decorators2}.pkl" )
+            joblib.dump( self.scaler, f"{scalerPath}_SW{self.slidingWindow[0]}_{self.slidingWindow[1]}_SW{self.slidingWindow[0]}_{self.slidingWindow[1]}CV{self.slidingWindowCoverage}_{decorators1}_{decorators2}.pkl" )
             self.logger.infoMsg( f"Successfully saved scaler: {scalerPath}" )
         criterion               = nn.CrossEntropyLoss(  )
         dataset                 = TensorDataset( X_train, y_train )
@@ -141,7 +142,7 @@ class Trainer:
             epochLoss               = runningLoss / len(  dataLoader  )
             trainLosses[ epoch ] = epochLoss
             self.logger.infoMsg( f'[TRAINING MSG>>>]..... Epoch {epoch+1}/{nEpochs}, Train Loss: {loss.item(  ):.4f}')
-            self._saveCheckpoint( model,optimizer,epoch,trainLosses[-1],modelType,codeName=f"_{decorators1}_{decorators2}" )
+            self._saveCheckpoint( model,optimizer,epoch,trainLosses[-1],modelType,codeName=f"_{decorators1}_{decorators2}_SW{self.slidingWindow[0]}_{self.slidingWindow[1]}_SWC{self.slidingWindowCoverage}" )
             self.logger.infoMsg( f"Successfully saved checkpoint: {modelType}.chpt" )
         if saveModel:
             torch.save(  model.state_dict(  ), savePath  )
@@ -308,10 +309,10 @@ class Trainer:
         return model
 
     def createModelLSTM( self,device, **kwargs ):
-        nInputs         = 7 if "nInputs" not in kwargs else kwargs["nInputs"]
+        nInputs         = 10 if "nInputs" not in kwargs else kwargs["nInputs"]
         nLayers         = 3 if "nLayers" not in kwargs else kwargs["nLayers"]
         nHidden         = 30 if "nHidden" not in kwargs else kwargs["nHidden"]
-        nOutput         = 10 if "nOutput" not in kwargs else kwargs["nOutput"]
+        nOutput         = 11 if "nOutput" not in kwargs else kwargs["nOutput"]
         model           = LSTMClassifier(  nInputs=nInputs,nLayers=nLayers, nOutput=nOutput,nHidden=nHidden )
         model.to( device )
         return model

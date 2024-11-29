@@ -52,4 +52,4 @@ class LSTMClassifier( nn.Module ):
     def forward( self,x ):
         out, (hn, cn)       = self.lstm( x )
         out                 = self.fc( hn[ -1 ] )
-        return self.softmax( out )
+        return out

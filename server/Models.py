@@ -48,7 +48,6 @@ class LSTMClassifier( nn.Module ):
                                             batch_first     =True
                                         )
         self.fc             = nn.Linear( self.M,self.K )
-        self.softmax        = nn.Softmax( dim=1 )
 
     def forward( self,x ):
         out, (hn, cn)       = self.lstm( x )

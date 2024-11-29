@@ -309,7 +309,7 @@ class Trainer:
         return model
 
     def createModelLSTM( self,device, **kwargs ):
-        nInputs         = 7 if "nInputs" not in kwargs else kwargs["nInputs"]
+        nInputs         = 10 if "nInputs" not in kwargs else kwargs["nInputs"]
         nLayers         = 3 if "nLayers" not in kwargs else kwargs["nLayers"]
         nHidden         = 30 if "nHidden" not in kwargs else kwargs["nHidden"]
         nOutput         = 11 if "nOutput" not in kwargs else kwargs["nOutput"]

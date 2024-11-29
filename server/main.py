@@ -1,8 +1,8 @@
 from Trainer import Trainer
 
 batch       = [
-    dict(slidingWindow=[5,30],slidingWindowCoverage=30,nHeads=8,nLayers=6),
-    dict(slidingWindow=[5,30],slidingWindowCoverage=60,nHeads=8,nLayers=6),
+    # dict(slidingWindow=[5,30],slidingWindowCoverage=30,nHeads=8,nLayers=6),
+    # dict(slidingWindow=[5,30],slidingWindowCoverage=60,nHeads=8,nLayers=6),
     dict(slidingWindow=[5,30],slidingWindowCoverage=120,nHeads=8,nLayers=6)
 ]
 

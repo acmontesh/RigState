@@ -318,7 +318,8 @@ class Trainer:
         return model
 
     def _trend( self,window ):
-        slope,_,_,_,_         = sp.stats.linregress( np.arange(len( window )), window )
+        # slope,_,_,_,_         = sp.stats.linregress( np.arange(len( window )), window )
+        slope,_                 = np.polyfit( np.arange(len(window)),window,deg=1 )
         return slope
 
     def testModel( self,pathTest,pathScaler=None,blockWeights={  },batchSize=32,loadFromPath=None,modelType=None,model=None,fitScaler=False,**kwargs ):

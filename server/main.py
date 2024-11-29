@@ -21,4 +21,4 @@ if __name__=='__main__':
         print( f"[MODEL DESCRIPTION]...................HIDDEN NEURONS: {ba['nHidden']} | LAYERS: {ba['nLayers']} | CW: {ba['slidingWindowCoverage']}." )
         trainer = Trainer(  )
         trainer.loadData( "/home/acmontesh/Data" )
-        trainLosses, model=trainer.trainModel( "lstm",batchSize=1024,nEpochs=80,slidingWindow=ba["slidingWindow"],slidingWindowCoverage=ba["slidingWindowCoverage"],nHeads=ba["nHeads"],nLayers=ba["nLayers"] )
+        trainLosses, model=trainer.trainModel( "lstm",batchSize=1024,nEpochs=80,slidingWindow=ba["slidingWindow"],slidingWindowCoverage=ba["slidingWindowCoverage"],nHidden=ba["nHidden"],nLayers=ba["nLayers"] )

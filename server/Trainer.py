@@ -116,7 +116,7 @@ class Trainer:
         y_train                 = torch.argmax( y_train, dim=1 ).to( device )
         self.logger.infoMsg( f"Size of the training data: {(X_train.numel(  ) * X_train.element_size(  ))/1E9:.2f} GB for the input matrix and {(y_train.numel(  ) * y_train.element_size(  ))/1E9:.2f} GB for the response variable." )
         if saveScaler:
-            joblib.dump( self.scaler, f"{scalerPath}_SW{self.slidingWindow[0]}_{self.slidingWindow[1]}_SW{self.slidingWindow[0]}_{self.slidingWindow[1]}CV{self.slidingWindowCoverage}_{decorators1}_{decorators2}.pkl" )
+            joblib.dump( self.scaler, f"{scalerPath}_SW{self.slidingWindow[0]}{self.slidingWindow[1]}{self.slidingWindow[2]}{self.slidingWindow[3]}_WC{self.slidingWindowCoverage}_{decorators1}_{decorators2}.pkl" )
             self.logger.infoMsg( f"Successfully saved scaler: {scalerPath}" )
         criterion               = nn.CrossEntropyLoss(  )
         dataset                 = TensorDataset( X_train, y_train )
@@ -142,7 +142,7 @@ class Trainer:
             epochLoss               = runningLoss / len(  dataLoader  )
             trainLosses[ epoch ] = epochLoss
             self.logger.infoMsg( f'[TRAINING MSG>>>]..... Epoch {epoch+1}/{nEpochs}, Train Loss: {loss.item(  ):.4f}')
-            self._saveCheckpoint( model,optimizer,epoch,trainLosses[-1],modelType,codeName=f"_{decorators1}_{decorators2}_SW{self.slidingWindow[0]}_{self.slidingWindow[1]}_SWC{self.slidingWindowCoverage}" )
+            self._saveCheckpoint( model,optimizer,epoch,trainLosses[-1],modelType,codeName=f"_{decorators1}_{decorators2}_SW{self.slidingWindow[0]}{self.slidingWindow[1]}{self.slidingWindow[2]}{self.slidingWindow[3]}_SWC{self.slidingWindowCoverage}" )
             self.logger.infoMsg( f"Successfully saved checkpoint: {modelType}.chpt" )
         if saveModel:
             torch.save(  model.state_dict(  ), savePath  )
@@ -206,10 +206,10 @@ class Trainer:
         inferredBW              = c[0]+delta
         return inferredBW
 
-    def extractFeatures( self, df, blockWeight, modelType,slidingWindow=[5,60],fitScaler=False ):
+    def extractFeatures( self, df, blockWeight, modelType,slidingWindow=[2,5,10,30],fitScaler=False ):
         if isinstance( slidingWindow,list ):
             if len( slidingWindow )>=2:
-                shortTW,longTW                              = slidingWindow
+                shortTW,intTW1,intTW2,longTW                              = slidingWindow
             else: 
                 self.logger.errorMsg( "slidingWindow must be a list with at least two components: The size of the time windows for inspecting short- and long-term variations." )
                 sys.exit( 1 )
@@ -219,6 +219,8 @@ class Trainer:
         df[self.nom.EFF_HOOK_LOAD_MNEMO]            = np.where(df[self.nom.HOOK_LOAD_MNEMO]>0,df[self.nom.HOOK_LOAD_MNEMO]-df[self.nom.BLOCK_WEIGHT_MNEMO],0)
         df[self.nom.BLOCK_POSITION_TREND_SHORT_MNEMO]= df[self.nom.BLOCK_POSITION_MNEMO].rolling(window=shortTW).apply(self._trend,raw=True,engine='cython')
         df[self.nom.BLOCK_POSITION_TREND_LONG_MNEMO]= df[self.nom.BLOCK_POSITION_MNEMO].rolling(window=longTW).apply(self._trend,raw=True,engine='cython')
+        df[self.nom.BLOCK_POSITION_TREND_IT1_MNEMO]= df[self.nom.BLOCK_POSITION_MNEMO].rolling(window=intTW1).apply(self._trend,raw=True,engine='cython')
+        df[self.nom.BLOCK_POSITION_TREND_IT2_MNEMO]= df[self.nom.BLOCK_POSITION_MNEMO].rolling(window=intTW2).apply(self._trend,raw=True,engine='cython')
         df[self.nom.FLOW_RATE_VARIABILITY_MNEMO]    = df[self.nom.FLOW_IN_MNEMO].rolling(window=shortTW).std(  )
         df[self.nom.FLOW_RATE_MEAN_MNEMO]           = df[self.nom.FLOW_IN_MNEMO].rolling(window=shortTW).mean(  )
         df[self.nom.PRESSURE_MEAN_MNEMO]            = df[self.nom.STANDPIPE_PRESSURE_MNEMO].rolling(window=shortTW).mean(  )
@@ -226,10 +228,14 @@ class Trainer:
         df[self.nom.HOOK_LOAD_MEAN_MNEMO]           = df[self.nom.EFF_HOOK_LOAD_MNEMO].rolling(window=shortTW).mean(  )
         df[self.nom.HOOK_LOAD_SHORT_TREND]                = df[self.nom.EFF_HOOK_LOAD_MNEMO].rolling(window=shortTW).apply(self._trend,raw=True,engine='cython')
         df[self.nom.HOOK_LOAD_LONG_TREND]                = df[self.nom.EFF_HOOK_LOAD_MNEMO].rolling(window=longTW).apply(self._trend,raw=True,engine='cython')
+        df[self.nom.HOOK_LOAD_TREND_IT1_MNEMO]                = df[self.nom.EFF_HOOK_LOAD_MNEMO].rolling(window=intTW1).apply(self._trend,raw=True,engine='cython')
+        df[self.nom.HOOK_LOAD_TREND_IT2_MNEMO]                = df[self.nom.EFF_HOOK_LOAD_MNEMO].rolling(window=intTW2).apply(self._trend,raw=True,engine='cython')
         # df[self.nom.HOOK_LOAD_VARIABILITY_MNEMO]    = df[self.nom.EFF_HOOK_LOAD_MNEMO].rolling(window=shortTW).std(  )
         df[self.nom.ROP_MEAN_MNEMO]                 = df[self.nom.ROP_MNEMO].rolling(window=shortTW).mean(  )
         dfTraining                                  = df[[self.nom.BLOCK_POSITION_TREND_SHORT_MNEMO,
                                                           self.nom.BLOCK_POSITION_TREND_LONG_MNEMO,
+                                                          self.nom.BLOCK_POSITION_TREND_IT1_MNEMO,
+                                                          self.nom.BLOCK_POSITION_TREND_IT2_MNEMO,
                                                             self.nom.FLOW_RATE_VARIABILITY_MNEMO,
                                                             self.nom.FLOW_RATE_MEAN_MNEMO,
                                                             self.nom.PRESSURE_MEAN_MNEMO,
@@ -238,6 +244,8 @@ class Trainer:
                                                             self.nom.ROP_MEAN_MNEMO,
                                                             self.nom.HOOK_LOAD_SHORT_TREND,
                                                             self.nom.HOOK_LOAD_LONG_TREND,
+                                                            self.nom.HOOK_LOAD_TREND_IT1_MNEMO,
+                                                            self.nom.HOOK_LOAD_TREND_IT2_MNEMO,
                                                             self.nom.RIG_STATE_MNEMO]]
         dfTraining                                  = dfTraining.dropna( axis=0 )
         X                       = dfTraining.iloc[:,:-1].values
@@ -245,7 +253,7 @@ class Trainer:
         y                       = pd.get_dummies( y )
         y                       = y.reindex( columns=self.nom.GOAL_RIG_STATES,fill_value=False )
         y                       = y.values        
-        self.scaler.partial_fit( X )
+        if fitScaler:           self.scaler.partial_fit( X )
         return X, y
     
 

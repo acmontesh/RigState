@@ -40,8 +40,12 @@ class Nomenclature:
     EFF_HOOK_LOAD_MNEMO     = 'Effective Hook Load [klb]'
     ROP_MEAN_MNEMO          = 'ROP Mean'
     BLOCK_POSITION_TREND_SHORT_MNEMO='Short-Term Block Position Trend'
+    BLOCK_POSITION_TREND_IT1_MNEMO='Intermediate-Term 1 Block Position Trend'
+    BLOCK_POSITION_TREND_IT2_MNEMO='Intermediate-Term 2 Block Position Trend'
     BLOCK_POSITION_TREND_LONG_MNEMO='Long-Term Block Position Trend'
     HOOK_LOAD_SHORT_TREND='Short-Term Effective Hook Load Trend'
+    HOOK_LOAD_TREND_IT1_MNEMO='Intermediate-Term 1 Effective Hook Load Trend'
+    HOOK_LOAD_TREND_IT2_MNEMO='Intermediate-Term 2 Effective Hook Load Trend'
     HOOK_LOAD_LONG_TREND='Long-Term Effective Hook Load Trend'
     BACKREAMING_MNEMO       = 117
     TRIP_OUT_ELEV_MNEMO     = 112

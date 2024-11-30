@@ -9,3 +9,6 @@ src
 *.pth
 *.png
 transformer_0_chk
+transformer_*
+lstm_*
+scaler_*

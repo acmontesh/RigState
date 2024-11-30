@@ -14,7 +14,7 @@ from sklearn.metrics import confusion_matrix
 import joblib
 from Nomenclature import Nomenclature
 from Logger import LoggerDev
-from Models import TimeSeriesTransformer, LSTMClassifier, ConvLSTMClassifier
+from Models import TimeSeriesTransformer, LSTMClassifier, ConvLSTMClassifier, ConvTimeSeriesTransformer
 
 class Trainer:
 
@@ -341,6 +341,8 @@ class Trainer:
             model                   = self.createModelLSTM( device, **kwargs )
         elif modelType==self.nom.CONV_LSTM_MODEL_MNEMO:
             model                   = self.createModelConvLSTM( device, **kwargs )
+        elif modelType==self.nom.CONV_TRANSFORMER_MODEL_MNEMO:
+            model                   = self.createModelConvTransformer( device, **kwargs )
         optimizer                   = torch.optim.Adam( model.parameters( ),lr=learningRate )
         return model,optimizer
 
@@ -352,6 +354,18 @@ class Trainer:
         nHead           = 8 if "nHead" not in kwargs else kwargs["nHead"]
         dimFeedForward  = 512 if "dimFeedForward" not in kwargs else kwargs["dimFeedForward"]
         model           = TimeSeriesTransformer(  nInputs=nInputs,nLayers=nLayers,dModel=dModel,
+                                        nOutput=nOutput,nHead=nHead,dimFeedForward=dimFeedForward )
+        model.to( device )
+        return model
+    
+    def createModelConvTransformer( self, device, **kwargs ):
+        nInputs         = 10 if "nInputs" not in kwargs else kwargs["nInputs"]
+        nLayers         = 3 if "nLayers" not in kwargs else kwargs["nLayers"]
+        dModel          = 256 if "dModel" not in kwargs else kwargs["dModel"]
+        nOutput         = 11 if "nOutput" not in kwargs else kwargs["nOutput"]
+        nHead           = 8 if "nHead" not in kwargs else kwargs["nHead"]
+        dimFeedForward  = 512 if "dimFeedForward" not in kwargs else kwargs["dimFeedForward"]
+        model           = ConvTimeSeriesTransformer(  nInputs=nInputs,nLayers=nLayers,dModel=dModel,
                                         nOutput=nOutput,nHead=nHead,dimFeedForward=dimFeedForward )
         model.to( device )
         return model

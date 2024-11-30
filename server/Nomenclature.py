@@ -57,6 +57,7 @@ class Nomenclature:
     TRANSFORMER_MODEL_MNEMO = "transformer"
     LSTM_MODEL_MNEMO        = "lstm"
     CONV_LSTM_MODEL_MNEMO  = "conv_lstm"
+    CONV_TRANSFORMER_MODEL_MNEMO="conv_transformer"
     GOAL_RIG_STATES         = [111,112,114,115,116,117,118,119,120,121,124]
     DICT_RIG_STATES         = {
                                     111:"Tripping in on elevators",

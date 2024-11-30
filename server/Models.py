@@ -53,3 +53,40 @@ class LSTMClassifier( nn.Module ):
         out, (hn, cn)       = self.lstm( x )
         out                 = self.fc( hn[ -1 ] )
         return out
+    
+
+class ConvLSTMClassifier( nn.Module ):
+    def __init__( self, nInputs,nHidden,nLayers,nOutput,convOutChannels=32,kernelSize=3,poolingSize=2 ):
+        super( LSTMClassifier,self ).__init__( )
+        self.D  = nInputs
+        self.M  = nHidden
+        self.K  = nOutput
+        self.L  = nLayers
+
+        self.conv           = nn.Conv1d(
+            in_channels     =nInputs,       
+            out_channels    =convOutChannels, 
+            kernel_size     =kernelSize,    
+            padding         =kernelSize // 2  
+        )
+
+        self.pool = nn.MaxPool1d(  kernel_size=poolingSize, stride=poolingSize  )
+
+        self.lstmInputSize = convOutChannels
+
+        self.lstm           = nn.LSTM(
+                                            input_size      =self.lstmInputSize,
+                                            hidden_size     =self.M,
+                                            num_layers      =self.L,
+                                            batch_first     =True
+                                        )
+        self.fc             = nn.Linear( self.M,self.K )
+
+    def forward( self,x ):
+        x = x.permute(0, 2, 1)
+        x = self.conv(x)
+        x = self.pool(x)
+        x = x.permute(0, 2, 1)
+        out, (hn, cn)       = self.lstm( x )
+        out                 = self.fc( hn[ -1 ] )
+        return out

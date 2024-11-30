@@ -14,7 +14,7 @@ from sklearn.metrics import confusion_matrix
 import joblib
 from Nomenclature import Nomenclature
 from Logger import LoggerDev
-from Models import TimeSeriesTransformer, LSTMClassifier
+from Models import TimeSeriesTransformer, LSTMClassifier, ConvLSTMClassifier
 
 class Trainer:
 
@@ -331,6 +331,8 @@ class Trainer:
             model                   = self.createModelTransformer( device, **kwargs )
         elif modelType==self.nom.LSTM_MODEL_MNEMO:
             model                   = self.createModelLSTM( device, **kwargs )
+        elif modelType==self.nom.CONV_LSTM_MODEL_MNEMO:
+            model                   = self.createModelConvLSTM( device, **kwargs )
         optimizer                   = torch.optim.Adam( model.parameters( ),lr=learningRate )
         return model,optimizer
 
@@ -352,6 +354,15 @@ class Trainer:
         nHidden         = 30 if "nHidden" not in kwargs else kwargs["nHidden"]
         nOutput         = 11 if "nOutput" not in kwargs else kwargs["nOutput"]
         model           = LSTMClassifier(  nInputs=nInputs,nLayers=nLayers, nOutput=nOutput,nHidden=nHidden )
+        model.to( device )
+        return model
+    
+    def createModelConvLSTM( self,device, **kwargs ):
+        nInputs         = 10 if "nInputs" not in kwargs else kwargs["nInputs"]
+        nLayers         = 3 if "nLayers" not in kwargs else kwargs["nLayers"]
+        nHidden         = 30 if "nHidden" not in kwargs else kwargs["nHidden"]
+        nOutput         = 11 if "nOutput" not in kwargs else kwargs["nOutput"]
+        model           = ConvLSTMClassifier(  nInputs=nInputs,nLayers=nLayers, nOutput=nOutput,nHidden=nHidden )
         model.to( device )
         return model
 

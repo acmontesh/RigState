@@ -57,7 +57,7 @@ class LSTMClassifier( nn.Module ):
 
 class ConvLSTMClassifier( nn.Module ):
     def __init__( self, nInputs,nHidden,nLayers,nOutput,convOutChannels=32,kernelSize=3,poolingSize=2 ):
-        super( LSTMClassifier,self ).__init__( )
+        super( ConvLSTMClassifier,self ).__init__( )
         self.D  = nInputs
         self.M  = nHidden
         self.K  = nOutput

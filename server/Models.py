@@ -56,7 +56,7 @@ class ConvTimeSeriesTransformer( nn.Module ):
 
     def forward( self, x ):
         x                       = x.permute( 0,2,1 )
-        x                       = x.conv( x )
+        x                       = self.conv( x )
         x                       = x.permute( 2,0,1 )
         x                       = x + self.posEncoding[ :, :x.size(0), : ]
         x                       = x.permute(1, 0, 2)

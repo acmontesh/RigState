@@ -58,7 +58,7 @@ class ConvTimeSeriesTransformer( nn.Module ):
         x                       = x.permute( 0,2,1 )
         x                       = self.conv( x )
         x                       = x.permute( 2,0,1 )
-        x                       = x + self.posEncoding[ :, :x.size(0), : ]
+        x                       = x + self.posEncoding[ :, :x.size(1), : ]
         x                       = x.permute(1, 0, 2)
         x                       = self.transformerEncoder( x )
         x                       = x[ -1, :, : ]

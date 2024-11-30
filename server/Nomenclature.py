@@ -47,6 +47,7 @@ class Nomenclature:
     HOOK_LOAD_TREND_IT1_MNEMO='Intermediate-Term 1 Effective Hook Load Trend'
     HOOK_LOAD_TREND_IT2_MNEMO='Intermediate-Term 2 Effective Hook Load Trend'
     HOOK_LOAD_LONG_TREND='Long-Term Effective Hook Load Trend'
+
     BACKREAMING_MNEMO       = 117
     TRIP_OUT_ELEV_MNEMO     = 112
     PUMPING_OUT_MNEMO       = 115

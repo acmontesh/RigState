@@ -88,8 +88,10 @@ class Trainer:
         self.logger.infoMsg( f"The {modelType} model has been created." )
         currEpoch               = 0
         trainLosses             = np.zeros( nEpochs )
-        decorators1          = "default_hiddens" if "nHidden" not in kwargs else f"H{kwargs['nHidden']}"
-        # decorators1          = "default_heads" if "nHeads" not in kwargs else f"H{kwargs['nHeads']}"
+        if modelType==self.nom.TRANSFORMER_MODEL_MNEMO:
+            decorators1          = "default_heads" if "nHeads" not in kwargs else f"H{kwargs['nHeads']}"
+        else:
+            decorators1          = "default_hiddens" if "nHidden" not in kwargs else f"H{kwargs['nHidden']}"
         decorators2          = "default_layers" if "nLayers" not in kwargs else f"L{kwargs['nLayers']}"
         if 'slidingWindow' not in kwargs:
             self.slidingWindow  = [5,30]
@@ -125,7 +127,10 @@ class Trainer:
         y_train                 = torch.argmax( y_train, dim=1 ).to( device )
         self.logger.infoMsg( f"Size of the training data: {(X_train.numel(  ) * X_train.element_size(  ))/1E9:.2f} GB for the input matrix and {(y_train.numel(  ) * y_train.element_size(  ))/1E9:.2f} GB for the response variable." )
         if saveScaler:
-            joblib.dump( self.scaler, f"{scalerPath}_SW{self.slidingWindow[0]}{self.slidingWindow[1]}{self.slidingWindow[2]}{self.slidingWindow[3]}_WC{self.slidingWindowCoverage}_{decorators1}_{decorators2}.pkl" )
+            if len(self.slidingWindow)>2:
+                joblib.dump( self.scaler, f"{scalerPath}_SW{self.slidingWindow[0]}{self.slidingWindow[1]}{self.slidingWindow[2]}{self.slidingWindow[3]}_WC{self.slidingWindowCoverage}_{decorators1}_{decorators2}.pkl" )
+            else:
+                joblib.dump( self.scaler, f"{scalerPath}_SW{self.slidingWindow[0]}{self.slidingWindow[1]}_WC{self.slidingWindowCoverage}_{decorators1}_{decorators2}.pkl" )
             self.logger.infoMsg( f"Successfully saved scaler: {scalerPath}" )
         criterion               = nn.CrossEntropyLoss(  )
         dataset                 = TensorDataset( X_train, y_train )
@@ -151,7 +156,10 @@ class Trainer:
             epochLoss               = runningLoss / len(  dataLoader  )
             trainLosses[ epoch ] = epochLoss
             self.logger.infoMsg( f'[TRAINING MSG>>>]..... Epoch {epoch+1}/{nEpochs}, Train Loss: {loss.item(  ):.4f}')
-            self._saveCheckpoint( model,optimizer,epoch,trainLosses[-1],modelType,codeName=f"_{decorators1}_{decorators2}_SW{self.slidingWindow[0]}{self.slidingWindow[1]}{self.slidingWindow[2]}{self.slidingWindow[3]}_SWC{self.slidingWindowCoverage}" )
+            if len(self.slidingWindow)>2:
+                self._saveCheckpoint( model,optimizer,epoch,trainLosses[-1],modelType,codeName=f"_{decorators1}_{decorators2}_SW{self.slidingWindow[0]}{self.slidingWindow[1]}{self.slidingWindow[2]}{self.slidingWindow[3]}_SWC{self.slidingWindowCoverage}" )
+            else:
+                self._saveCheckpoint( model,optimizer,epoch,trainLosses[-1],modelType,codeName=f"_{decorators1}_{decorators2}_SW{self.slidingWindow[0]}{self.slidingWindow[1]}_SWC{self.slidingWindowCoverage}" )
             self.logger.infoMsg( f"Successfully saved checkpoint: {modelType}.chpt" )
         if saveModel:
             torch.save(  model.state_dict(  ), savePath  )

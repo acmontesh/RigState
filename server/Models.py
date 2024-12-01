@@ -39,12 +39,11 @@ class ConvTimeSeriesTransformer( nn.Module ):
         super( ConvTimeSeriesTransformer,self ).__init__( )
         self.D                  = nInputs
         self.dModel             = dModel
-        self.conv               = nn.Conv1d( in_channels=nInputs,out_channels=dModel,kernel_size=kernelSize )
+        self.conv               = nn.Conv1d( in_channels=nInputs,out_channels=dModel,kernel_size=kernelSize,padding=(kernelSize-1) // 2 )
         self.posEncoding        = nn.Parameter( self._generatePosEncoding( dModel, maxLength=500 ), requires_grad=False )
         encoderLayer            = nn.TransformerEncoderLayer( d_model=dModel, nhead=nHead, dim_feedforward=dimFeedForward, dropout=dropoutRate )
         self.transformerEncoder = nn.TransformerEncoder(encoderLayer, num_layers=nLayers)
         self.fc                 = nn.Linear( dModel, nOutput  )
-        self.softmax            = nn.Softmax( dim=1 )
 
     def _generatePosEncoding(  self, dModel, maxLength  ):
         position                = torch.arange(  0, maxLength  ).unsqueeze(1)
@@ -57,13 +56,13 @@ class ConvTimeSeriesTransformer( nn.Module ):
     def forward( self, x ):
         x                       = x.permute( 0,2,1 )
         x                       = self.conv( x )
-        x                       = x.permute( 2,0,1 )
+        x                       = x.permute( 0,2,1 )
         x                       = x + self.posEncoding[ :, :x.size(1), : ]
-        x                       = x.permute(1, 0, 2)
+        x                       = x.permute( 1,0,2 )
         x                       = self.transformerEncoder( x )
         x                       = x[ -1, :, : ]
         output                  = self.fc( x )
-        return self.softmax( output )
+        return output
 
 
 class LSTMClassifier( nn.Module ):

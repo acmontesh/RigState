@@ -1,0 +1,27 @@
+import random as rd
+from Trainer import Trainer
+trainer=Trainer(  )
+exerpts = [  ]
+df = pd.read_csv( "/home/acmontesh/Data/testing.csv",parse_dates=["Date"] )
+df['Block Weight [klb]'] = 47.0
+for i in range(100):
+    idx = rd.randint( 0,270034 )
+    exerpts.append( df.iloc[idx:idx+30] )
+performancesConvLSTM                    = [  ]
+
+for k,ex in enumerate( exerpts ):
+    print( f"[PROGRESS].......Working on exerpt No. {k}" )
+    pHFunc = lambda: trainer.testModel( "C:\Users\abrah\OneDrive\Doctorate Petroleum Engineering\0A. RESEARCH PROJECT\16. RIG ACTIVITY ENGINE\0. DATA\temp3",
+                  pathScaler=r"C:\Users\abrah\OneDrive\Doctorate Petroleum Engineering\0A. RESEARCH PROJECT\16. RIG ACTIVITY ENGINE\3. CHECKPOINTS\Stratified Models\LSTM_CONV_H100\scaler_transformer_SW530_WC60_H100_L5.pkl",
+                  # modelType='lstm',
+                  modelType='conv_lstm',
+                  loadFromPath=r"C:\Users\abrah\OneDrive\Doctorate Petroleum Engineering\0A. RESEARCH PROJECT\16. RIG ACTIVITY ENGINE\3. CHECKPOINTS\Stratified Models\LSTM_CONV_H100\conv_lstm_H100_L5_SW530_SWC60_CV60",
+                  slidingWindow=[5,30],
+                  slidingWindowCoverage=60,
+                  nInputs=10,
+                  nLayers=5,
+                  nHidden=100,
+                  profilingTime=True
+                    )
+    time = %timeit -o (pHFunc)(  )
+    performancesConvLSTM.append( time.average )

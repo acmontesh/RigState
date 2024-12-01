@@ -12,3 +12,4 @@ transformer_0_chk
 transformer_*
 lstm_*
 scaler_*
+profiling.py

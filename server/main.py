@@ -2,10 +2,9 @@ from Trainer import Trainer
 
 batch       = [
 #    dict(slidingWindow=[2,30],slidingWindowCoverage=30,nHidden=50,nLayers=3),
-    dict(slidingWindow=[2,5,10,30],slidingWindowCoverage=60,nHeads=8,nLayers=6),
-    dict(slidingWindow=[2,5,10,30],slidingWindowCoverage=60,nHeads=8,nLayers=6),
+    dict(slidingWindow=[2,5,10,30],slidingWindowCoverage=15,nHeads=8,nLayers=6),
     dict(slidingWindow=[2,5,10,30],slidingWindowCoverage=30,nHeads=8,nLayers=6),
-    dict(slidingWindow=[2,5,10,30],slidingWindowCoverage=30,nHeads=8,nLayers=6)
+    dict(slidingWindow=[2,5,10,30],slidingWindowCoverage=60,nHeads=8,nLayers=6),
  #   dict(slidingWindow=[2,30],slidingWindowCoverage=30,nHidden=50,nLayers=5),
  #   dict(slidingWindow=[2,30],slidingWindowCoverage=60,nHidden=100,nLayers=5),
  #   dict(slidingWindow=[5,30],slidingWindowCoverage=60,nHidden=100,nLayers=5),

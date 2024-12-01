@@ -13,3 +13,4 @@ transformer_*
 lstm_*
 scaler_*
 profiling.py
+conv_*

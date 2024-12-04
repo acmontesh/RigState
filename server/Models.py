@@ -9,7 +9,7 @@ class TimeSeriesTransformer( nn.Module ):
         self.D                  = nInputs
         self.dModel             = dModel
         self.inputProjection    = nn.Linear(  nInputs, dModel  )
-        self.posEncoding        = nn.Parameter( self._generatePosEncoding( dModel, maxLength=500 ), requires_grad=False )
+        self.posEncoding        = nn.Parameter( self._generatePosEncoding( dModel, maxLength=300 ), requires_grad=False )
         encoderLayer            = nn.TransformerEncoderLayer( d_model=dModel, nhead=nHead, dim_feedforward=dimFeedForward, dropout=dropoutRate )
         self.transformerEncoder = nn.TransformerEncoder(encoderLayer, num_layers=nLayers)
         self.fc                 = nn.Linear( dModel, nOutput  )

@@ -1,0 +1,14 @@
+{
+    "components":           [
+        {
+            "OD":           12.25,
+            "ID":           10.055,
+            "youngModulus": 30E6,
+            "length":       14522
+        }
+    ],
+    "hasReamerShoe":        false,
+    "centralizers":         [
+        
+    ]
+}

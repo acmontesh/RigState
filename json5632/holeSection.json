@@ -1,0 +1,36 @@
+{   "previousCasings": [
+    {
+        "name":             "Casing 9-5/8",
+        "bottomMD":         3494,
+        "ID":               8.921,
+        "frictionCoefficient": 0.1,
+        "isFFFixed":        false
+        
+    }
+],
+    "openHoleSections":     [
+        {
+            "name":             "8-3/4 in. Hole Section",
+            "bottomMD":         7800,
+            "ID":               8.75,
+            "frictionCoefficient": 0.1,
+            "isFFFixed":        false           
+        }
+    ],
+    "bitSize":              8.75,
+    "holeOpenerSize":       8.75,
+    "isUnderreamed":        false,  
+    "lengthEnlarged":       0,
+    "blockWeight":          37,
+    "dateDrillout":         "12/29/2018 15:18",
+    "previousShoeDepth":    3494,
+    "sectionTD":            7800,
+    "dateLastBHAInShoe":    "01/01/2019 06:32",
+    "events": [
+
+    ],
+    "isConditioned":        false,
+    "willBeLoggedBeforeCasing":false,
+    "highVisSweepPumped":   true,
+    "casingRunFailed":      false
+}

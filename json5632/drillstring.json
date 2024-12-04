@@ -1,0 +1,48 @@
+{
+    "name":         "8-3/4 in. BHA",
+    "MDIn":         3494,
+    "MDOut":        7800,
+    "MDBottom":     7800,
+    "components": [
+        {
+            "name":         "Mud Hammer",
+            "isDrillPipe":  false,
+            "OD":           8.38,
+            "ID":           1.650,
+            "youngModulus": 30E6,
+            "length":       55.00,
+            "adjustedNominalWeight":90.0,
+            "toolJointOD":  8.75
+        },
+        {
+            "name":         "Drill Collars 6 1/2 in.",
+            "isDrillPipe":  false,
+            "OD":           6.500,
+            "ID":           3.00,
+            "youngModulus": 30E6,
+            "length":       368,
+            "adjustedNominalWeight":90.0,
+            "toolJointOD":  8.25
+        },
+        {
+            "name":         "HWDP 5 in.",
+            "isDrillPipe":  false,
+            "OD":           5.000,
+            "ID":           3.2500,
+            "youngModulus": 30E6,
+            "length":       730.00,
+            "adjustedNominalWeight":48.0,
+            "toolJointOD":  5.00
+        },
+        {
+            "name":         "DP 5 in.",
+            "isDrillPipe":  true,
+            "OD":           5.000,
+            "ID":           3.250,
+            "youngModulus": 30E6,
+            "length":       false,
+            "adjustedNominalWeight":20.0,
+            "toolJointOD":  6.500
+        }
+    ]
+}

@@ -1,0 +1,7 @@
+{
+    "MWIn":               8.900,
+    "MWOut":              8.900,
+    "plasticViscosity": 13,
+    "yieldPoint":       17,
+    "isWaterBased":     true
+}

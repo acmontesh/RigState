@@ -1,0 +1,24 @@
+{
+    "name":         "9-7/8 in. Hole Section",
+    "TD":           28106,
+    "sections":     [
+        {
+            "name":     "Intermediate 12 1/4 in. casing",
+            "ID":       10.055,
+            "bottomMD": 25092,
+            "isOpenHole":   false
+        },
+        {
+            "name":     "Production 7 in. Liner",
+            "ID":       5.82,
+            "bottomMD": 27565,
+            "isOpenHole":   false
+        },
+        {
+            "name":     "5 7/8 in. x 7.00 in. Open Hole",
+            "ID":       7.0,
+            "bottomMD": 28106,
+            "isOpenHole":   true
+        }
+    ]
+}

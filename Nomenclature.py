@@ -29,18 +29,25 @@ class Nomenclature:
     CIRCULATION_MNEMO       = "Circulation"
     BLOCK_WEIGHT_DELTA_MNEMO= "delta"
     BLOCK_WEIGHT_DELTA_DATES_MNEMO="dates"
-    BLOCK_POSITION_TREND_SHORT_MNEMO='Short-Term Block Position Trend'
-    BLOCK_POSITION_TREND_LONG_MNEMO='Long-Term Block Position Trend'
-    HOOK_LOAD_SHORT_TREND='Short-Term Effective Hook Load Trend'
-    HOOK_LOAD_LONG_TREND='Long-Term Effective Hook Load Trend'
+    HOOK_LOAD_MEAN_MNEMO    = 'Effective Hook Load Mean'
+    PRESSURE_MEAN_MNEMO     = 'Standpipe Pressure Mean'
+    BLOCK_POSITION_TREND_MNEMO='Block Position Trend'
     FLOW_RATE_VARIABILITY_MNEMO='Flow Rate Variability'
     FLOW_RATE_MEAN_MNEMO        ='Flow Rate Mean'
     RPM_MEAN_MNEMO          = 'RPM Mean'
-    HOOK_LOAD_MEAN_MNEMO    = 'Effective Hook Load Mean'
+    HOOK_LOAD_MEAN_MNEMO    = 'Hook Load Mean'
     HOOK_LOAD_VARIABILITY_MNEMO='Hook Load Variability'
-    PRESSURE_MEAN_MNEMO     = 'Standpipe Pressure Mean'
     EFF_HOOK_LOAD_MNEMO     = 'Effective Hook Load [klb]'
     ROP_MEAN_MNEMO          = 'ROP Mean'
+    BLOCK_POSITION_TREND_SHORT_MNEMO='Short-Term Block Position Trend'
+    BLOCK_POSITION_TREND_IT1_MNEMO='Intermediate-Term 1 Block Position Trend'
+    BLOCK_POSITION_TREND_IT2_MNEMO='Intermediate-Term 2 Block Position Trend'
+    BLOCK_POSITION_TREND_LONG_MNEMO='Long-Term Block Position Trend'
+    HOOK_LOAD_SHORT_TREND='Short-Term Effective Hook Load Trend'
+    HOOK_LOAD_TREND_IT1_MNEMO='Intermediate-Term 1 Effective Hook Load Trend'
+    HOOK_LOAD_TREND_IT2_MNEMO='Intermediate-Term 2 Effective Hook Load Trend'
+    HOOK_LOAD_LONG_TREND='Long-Term Effective Hook Load Trend'
+
     BACKREAMING_MNEMO       = 117
     TRIP_OUT_ELEV_MNEMO     = 112
     PUMPING_OUT_MNEMO       = 115
@@ -49,6 +56,8 @@ class Nomenclature:
     CONNECTION_MNEMO        = 118
     TRANSFORMER_MODEL_MNEMO = "transformer"
     LSTM_MODEL_MNEMO        = "lstm"
+    CONV_LSTM_MODEL_MNEMO  = "conv_lstm"
+    CONV_TRANSFORMER_MODEL_MNEMO="conv_transformer"
     GOAL_RIG_STATES         = [111,112,114,115,116,117,118,119,120,121,124]
     DICT_RIG_STATES         = {
                                     111:"Tripping in on elevators",
@@ -85,5 +94,4 @@ class Nomenclature:
             "DEPTH":                            DEPTH_MNEMONIC,
             "SGRC":                             GAMMA_RAY_LOG_MNEMO
         }
-    
-    
+

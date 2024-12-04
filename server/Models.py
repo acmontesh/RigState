@@ -13,7 +13,6 @@ class TimeSeriesTransformer( nn.Module ):
         encoderLayer            = nn.TransformerEncoderLayer( d_model=dModel, nhead=nHead, dim_feedforward=dimFeedForward, dropout=dropoutRate )
         self.transformerEncoder = nn.TransformerEncoder(encoderLayer, num_layers=nLayers)
         self.fc                 = nn.Linear( dModel, nOutput  )
-        self.softmax            = nn.Softmax( dim=1 )
 
     def _generatePosEncoding(  self, dModel, maxLength  ):
         position                = torch.arange(  0, maxLength  ).unsqueeze(1)
@@ -30,7 +29,7 @@ class TimeSeriesTransformer( nn.Module ):
         x                       = self.transformerEncoder( x )
         x                       = x[ -1, :, : ]
         output                  = self.fc( x )
-        return self.softmax( output )
+        return output
     
 
 class ConvTimeSeriesTransformer( nn.Module ):
